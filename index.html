@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Gold Mining</title>
+    <!-- Favicon: Glowing Gold Coin -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪙</text></svg>">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Neon Color Palette */
+        :root {
+            --neon-blue: #00FFFF; /* Cyan */
+            --neon-purple: #FF00FF; /* Magenta */
+            --neon-green: #39FF14; /* Electric Green */
+            --neon-red: #FF073A; /* Red Neon */
+            --dark-bg: #0f0f1a; /* Very dark blue-purple */
+            --medium-dark-bg: #1a1a2e; /* Slightly lighter dark */
+            --light-neon-text: #e0f2f7; /* Very light blue for revealed cells */
+        }
+
+        /* Custom styles for the game */
+        body {
+            background-image: url('https://media.istockphoto.com/id/1545637815/vector/synthwave-wireframe-net-illustration-abstract-digital-background-80s-90s-retro-futurism.jpg?s=612x612&w=0&k=20&c=9LMGyg_BEwdgBfSHxcpxgO014zI1rliHNLKEA9Az5Q0=');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            font-family: "Inter", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            color: var(--neon-blue);
+        }
+
+        .game-container {
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 1.5rem;
+            box-shadow: 0 0 20px var(--neon-blue), 0 0 40px var(--neon-purple);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 95%;
+            width: 480px;
+            backdrop-filter: blur(8px);
+            border: 2px solid var(--neon-blue);
+        }
+
+        .game-container h1 {
+            color: var(--neon-purple);
+            text-shadow: 0 0 8px var(--neon-purple), 0 0 15px var(--neon-blue);
+            margin-bottom: 1.5rem;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 0.6rem;
+            width: 100%;
+            max-width: 460px;
+            aspect-ratio: 1 / 1;
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .cell {
+            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+            background-color: var(--medium-dark-bg);
+            border-radius: 0.75rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out;
+            color: var(--neon-blue);
+            user-select: none;
+            box-shadow: inset 0 0 5px rgba(0, 255, 255, 0.5), 0 0 5px rgba(255, 0, 255, 0.5);
+            border: 2px solid var(--neon-blue);
+            line-height: 1;
+        }
+
+        .cell:not(.revealed):hover {
+            background-color: #2a2a4a;
+            transform: scale(1.02);
+            box-shadow: inset 0 0 10px var(--neon-blue), 0 0 10px var(--neon-purple), 0 0 20px var(--neon-blue);
+        }
+
+        .cell.revealed {
+            background-color: rgba(255, 255, 255, 0.1);
+            cursor: default;
+            box-shadow: none;
+            color: var(--light-neon-text);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .cell.bomb {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--neon-red);
+            box-shadow: 0 0 15px var(--neon-red), 0 0 30px var(--neon-red);
+            border: 2px solid var(--neon-red);
+        }
+
+        .cell.safe {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--neon-green);
+            box-shadow: 0 0 15px var(--neon-green), 0 0 30px var(--neon-green);
+            border: 2px solid var(--neon-green);
+        }
+
+        .status-display {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--neon-blue);
+            text-shadow: 0 0 5px var(--neon-blue);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.8rem;
+            margin-top: 0.8rem; /* Default margin for button groups */
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .action-button {
+            background-color: var(--medium-dark-bg);
+            color: var(--neon-blue);
+            padding: 0.8rem 1.6rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 0 8px var(--neon-blue), 0 0 15px var(--neon-purple);
+            border: 2px solid var(--neon-blue);
+            width: auto; /* Allow buttons to size based on content */
+            min-width: 100px; /* Ensure a minimum width */
+            max-width: 48%; /* Allow two buttons per row */
+            font-size: 1rem;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            flex-grow: 1; /* Allow buttons to grow and fill space */
+        }
+
+        .action-button:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 255, 255, 0.2);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease-in-out;
+            z-index: -1;
+        }
+
+        .action-button:hover:before {
+            transform: scaleX(1);
+        }
+
+        .action-button:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 0 15px var(--neon-blue), 0 0 30px var(--neon-purple), 0 0 45px var(--neon-blue);
+            color: var(--neon-purple);
+        }
+
+        .action-button:active {
+            transform: translateY(0);
+            box-shadow: 0 0 8px var(--neon-blue), 0 0 15px var(--neon-purple);
+        }
+
+        /* Menu specific styles */
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            margin-top: 1.5rem; /* Adjusted margin-top for better spacing from title */
+        }
+
+        .menu-container .action-button {
+            margin-bottom: 0.8rem; /* Space between menu buttons */
+            margin-top: 0; /* Ensure no top margin from general action-button rule */
+        }
+
+        .menu-container .action-button:last-child {
+            margin-bottom: 0; /* No margin after the last button */
+        }
+
+
+        .rules-container {
+            display: flex; /* Use flexbox for layout */
+            flex-direction: column; /* Stack items vertically */
+            align-items: center; /* Center items horizontally */
+            text-align: left; /* Keep text left-aligned within its own flow */
+            padding: 2.5rem;
+            max-width: 500px;
+            line-height: 1.8;
+            font-size: 1.1rem;
+            color: var(--neon-blue);
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 1rem;
+            box-shadow: 0 0 15px var(--neon-blue), 0 0 30px var(--neon-purple);
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 2px solid var(--neon-blue);
+        }
+
+        .rules-container h2 {
+            color: var(--neon-purple);
+            text-shadow: 0 0 8px var(--neon-purple);
+            margin-bottom: 1rem;
+            font-size: 2rem;
+            text-align: center; /* Center the rules title */
+            width: 100%; /* Ensure title takes full width for centering */
+        }
+
+        .rules-container p,
+        .rules-container ul {
+            width: 100%; /* Ensure text content takes full width */
+            text-align: left; /* Keep text left-aligned */
+        }
+
+        .rules-container ul {
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .rules-container li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Game End Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--medium-dark-bg);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 0 15px var(--neon-blue), 0 0 30px var(--neon-purple);
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out;
+            border: 2px solid var(--neon-blue);
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+
+        /* Specific modal colors for win/lose */
+        .modal-content.win {
+            background-color: var(--medium-dark-bg);
+            box-shadow: 0 0 15px var(--neon-green), 0 0 30px var(--neon-green);
+            border: 2px solid var(--neon-green);
+        }
+
+        .modal-content.lose {
+            background-color: var(--medium-dark-bg);
+            box-shadow: 0 0 15px var(--neon-red), 0 0 30px var(--neon-red);
+            border: 2px solid var(--neon-red);
+        }
+
+        .modal-message {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--neon-blue);
+            text-shadow: 0 0 8px var(--neon-blue);
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-content.win .modal-message {
+            color: var(--neon-green);
+            text-shadow: 0 0 8px var(--neon-green);
+        }
+
+        .modal-content.lose .modal-message {
+            color: var(--neon-red);
+            text-shadow: 0 0 8px var(--neon-red);
+        }
+
+        .modal-button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-button-group .action-button {
+            margin-top: 0;
+            width: 100%;
+            max-width: none;
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 0.6rem;
+                width: 98%;
+            }
+            .game-container h1 {
+                margin-bottom: 1rem;
+            }
+            .game-board {
+                max-width: 95%;
+                gap: 0.15rem;
+            }
+            .cell {
+                font-size: 1.8rem;
+                border-radius: 0.3rem;
+            }
+            .status-display {
+                font-size: 1rem;
+            }
+            .action-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+                margin-top: 0.6rem;
+                flex-grow: unset;
+                width: 100%;
+            }
+            .button-group {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .rules-container {
+                font-size: 0.85rem;
+                padding: 1rem;
+                margin-top: 1rem;
+                margin-bottom: 1rem;
+            }
+            .rules-container h2 {
+                font-size: 1.5rem;
+            }
+            .modal-content {
+                padding: 1.5rem;
+                width: 95%;
+            }
+            .modal-message {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="text-3xl font-extrabold mb-4">Neon Gold Mining</h1>
+
+        <!-- Main Menu -->
+        <div id="mainMenu" class="menu-container">
+            <button id="playGameButton" class="action-button">Play Game</button>
+            <button id="rulesButton" class="action-button">Rules</button>
+            <button id="exitButton" class="action-button">Exit</button>
+        </div>
+
+        <!-- Game Section -->
+        <div id="gameSection" style="display: none;">
+            <div id="status" class="status-display">Find 12 Safe Tiles!</div>
+            <div id="gameBoard" class="game-board">
+                <!-- Cells will be dynamically created by JavaScript -->
+            </div>
+            <!-- These buttons are hidden by default and shown after "Show Board" is clicked -->
+            <div id="postGameButtons" class="button-group" style="display: none;">
+                <button id="gameSectionPlayAgainButton" class="action-button">Play Again</button>
+                <button id="gameSectionShowMenuButton" class="action-button">Show Menu</button>
+            </div>
+        </div>
+
+        <!-- Rules Section -->
+        <div id="rulesSection" class="rules-container" style="display: none;">
+            <h2 class="text-2xl font-bold mb-4">Game Rules</h2>
+            <p class="mb-4">
+                Welcome to Mines! The objective of the game is to open safe tiles without hitting any bombs.
+            </p>
+            <ul class="list-disc list-inside mb-4">
+                <li>There is a 5x5 grid of tiles.</li>
+                <li>There are 3 hidden bombs randomly placed on the grid.</li>
+                <li>Your goal is to open at least 12 safe tiles to win the game.</li>
+                <li>If you click on a bomb, the game ends, and you lose!</li>
+                <li>If you win or lose, a "Play Again" button will appear.</li>
+            </ul>
+            <button id="backToMenuButton" class="action-button">Back to Menu</button>
+        </div>
+    </div>
+
+    <!-- Game End Modal -->
+    <div id="gameEndModal" class="modal-overlay">
+        <div id="modalContent" class="modal-content">
+            <p id="modalMessage" class="modal-message"></p>
+            <div class="modal-button-group">
+                <button id="modalPlayAgainButton" class="action-button">Play Again</button>
+                <button id="modalShowMenuButton" class="action-button">Show Menu</button>
+                <button id="modalShowBoardButton" class="action-button">Show Board</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get references to DOM elements
+        const mainMenu = document.getElementById('mainMenu');
+        const gameSection = document.getElementById('gameSection');
+        const rulesSection = document.getElementById('rulesSection');
+
+        const playGameButton = document.getElementById('playGameButton');
+        const rulesButton = document.getElementById('rulesButton');
+        const exitButton = document.getElementById('exitButton');
+        const backToMenuButton = document.getElementById('backToMenuButton');
+
+        const gameBoard = document.getElementById('gameBoard');
+        const statusDisplay = document.getElementById('status');
+
+        // Modal elements
+        const gameEndModal = document.getElementById('gameEndModal');
+        const modalContent = document.getElementById('modalContent');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalPlayAgainButton = document.getElementById('modalPlayAgainButton');
+        const modalShowMenuButton = document.getElementById('modalShowMenuButton');
+        const modalShowBoardButton = document.getElementById('modalShowBoardButton');
+
+        // Buttons visible after "Show Board"
+        const postGameButtons = document.getElementById('postGameButtons');
+        const gameSectionPlayAgainButton = document.getElementById('gameSectionPlayAgainButton');
+        const gameSectionShowMenuButton = document.getElementById('gameSectionShowMenuButton');
+
+
+        // Game constants
+        const GRID_SIZE = 5; // 5x5 grid
+        const NUM_BOMBS = 3; // Number of bombs
+        const TILES_TO_WIN = 12; // Number of safe tiles to open to win
+
+        // Game state variables
+        let board = [];
+        let revealedTilesCount = 0;
+        let gameActive = true;
+
+        /**
+         * Shows the main menu and hides other sections.
+         */
+        function showMenu() {
+            mainMenu.style.display = 'flex';
+            gameSection.style.display = 'none';
+            rulesSection.style.display = 'none';
+            gameEndModal.classList.remove('show');
+            modalContent.classList.remove('win', 'lose');
+            postGameButtons.style.display = 'none'; // Ensure these are hidden when going to menu
+        }
+
+        /**
+         * Shows the game section and hides other sections.
+         * Also initializes a new game.
+         */
+        function showGame() {
+            mainMenu.style.display = 'none';
+            gameSection.style.display = 'block';
+            rulesSection.style.display = 'none';
+            gameEndModal.classList.remove('show');
+            modalContent.classList.remove('win', 'lose');
+            postGameButtons.style.display = 'none'; // Ensure these are hidden when starting new game
+
+            setTimeout(() => {
+                initializeGame();
+            }, 50);
+        }
+
+        /**
+         * Shows the rules section and hides other sections.
+         */
+        function showRules() {
+            mainMenu.style.display = 'none';
+            gameSection.style.display = 'none';
+            rulesSection.style.display = 'block';
+            gameEndModal.classList.remove('show');
+            modalContent.classList.remove('win', 'lose');
+            postGameButtons.style.display = 'none'; // Ensure these are hidden if rules accessed from game end
+        }
+
+        /**
+         * Initializes the game board, places bombs, and sets up initial state.
+         */
+        function initializeGame() {
+            board = Array(GRID_SIZE * GRID_SIZE).fill('safe');
+            revealedTilesCount = 0;
+            gameActive = true;
+            gameBoard.innerHTML = '';
+
+            let bombPositions = new Set();
+            while (bombPositions.size < NUM_BOMBS) {
+                const randomIndex = Math.floor(Math.random() * (GRID_SIZE * GRID_SIZE));
+                bombPositions.add(randomIndex);
+            }
+            bombPositions.forEach(index => {
+                board[index] = 'bomb';
+            });
+
+            for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = i;
+                cell.addEventListener('click', handleCellClick);
+                gameBoard.appendChild(cell);
+            }
+
+            statusDisplay.textContent = `Find ${TILES_TO_WIN} Safe Tiles!`;
+        }
+
+        /**
+         * Handles a click event on a game cell.
+         * @param {Event} event - The click event object.
+         */
+        function handleCellClick(event) {
+            if (!gameActive || event.target.classList.contains('revealed')) {
+                return;
+            }
+
+            const clickedCell = event.target;
+            const clickedCellIndex = parseInt(clickedCell.dataset.index);
+
+            clickedCell.classList.add('revealed');
+
+            if (board[clickedCellIndex] === 'bomb') {
+                clickedCell.textContent = '💣';
+                clickedCell.classList.add('bomb');
+                statusDisplay.textContent = 'BOOM! You hit a bomb. You Lost! 💥';
+                gameActive = false;
+                revealAllBombs();
+                showGameEndModal('You Lost! 💥', 'lose');
+            } else {
+                clickedCell.textContent = '🪙';
+                clickedCell.classList.add('safe');
+                revealedTilesCount++;
+                statusDisplay.textContent = `Safe Tiles: ${revealedTilesCount} / ${TILES_TO_WIN}`;
+
+                if (revealedTilesCount >= TILES_TO_WIN) {
+                    statusDisplay.textContent = 'Congratulations! You Won! �';
+                    gameActive = false;
+                    revealAllBombs();
+                    showGameEndModal('You Won! 🎉', 'win');
+                }
+            }
+        }
+
+        /**
+         * Reveals all bomb locations on the board.
+         * Called when the game ends (win or lose).
+         */
+        function revealAllBombs() {
+            const cells = gameBoard.children;
+            for (let i = 0; i < board.length; i++) {
+                if (board[i] === 'bomb') {
+                    const cell = cells[i];
+                    if (!cell.classList.contains('revealed')) {
+                        cell.textContent = '💣';
+                        cell.classList.add('bomb', 'revealed');
+                    }
+                }
+            }
+        }
+
+        /**
+         * Displays the game end modal with a specific message and applies color.
+         * @param {string} message - The message to display (e.g., "You Won!" or "You Lost!").
+         * @param {string} type - 'win' or 'lose' to apply appropriate styling.
+         */
+        function showGameEndModal(message, type) {
+            modalMessage.textContent = message;
+            modalContent.classList.remove('win', 'lose');
+            if (type === 'win') {
+                modalContent.classList.add('win');
+            } else if (type === 'lose') {
+                modalContent.classList.add('lose');
+            }
+            gameEndModal.classList.add('show');
+            modalShowBoardButton.style.display = 'block';
+        }
+
+        /**
+         * Hides the modal and makes the post-game buttons visible on the main game section.
+         */
+        function showBoard() {
+            gameEndModal.classList.remove('show');
+            postGameButtons.style.display = 'flex'; /* Make the button group visible */
+        }
+
+
+        // Event Listeners for menu and game buttons
+        playGameButton.addEventListener('click', showGame);
+        rulesButton.addEventListener('click', showRules);
+        exitButton.addEventListener('click', () => {
+            mainMenu.style.display = 'none';
+            gameSection.style.display = 'none';
+            rulesSection.style.display = 'none';
+            statusDisplay.textContent = 'Thanks for playing!';
+            gameEndModal.classList.remove('show');
+            modalContent.classList.remove('win', 'lose');
+            postGameButtons.style.display = 'none';
+        });
+        backToMenuButton.addEventListener('click', showMenu);
+        modalPlayAgainButton.addEventListener('click', showGame);
+        modalShowMenuButton.addEventListener('click', showMenu);
+        modalShowBoardButton.addEventListener('click', showBoard);
+
+        // Event listeners for the new post-game buttons
+        gameSectionPlayAgainButton.addEventListener('click', showGame);
+        gameSectionShowMenuButton.addEventListener('click', showMenu);
+
+        // Initialize the game by showing the main menu when the page loads
+        window.onload = showMenu;
+    </script>
+</body>
+</html>
